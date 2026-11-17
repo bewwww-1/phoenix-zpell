@@ -97,10 +97,22 @@ function loadDemo(){
   cache.appointments=[{id:'a1',appointment_date:dateToday(),appointment_time:'10:30',customer_name:'คุณลูกค้าตัวอย่าง',staff_nickname:'NU',service_name:'Cut & Blow',price:500,status:'confirmed'},{id:'a2',appointment_date:dateToday(),appointment_time:'13:00',customer_name:'คุณลูกค้าตัวอย่าง 2',staff_nickname:'MUYONG',service_name:'ORDEVE',price:2500,status:'waiting'}];
 }
 async function boot(s){
+  if(!s?.user?.id){
+    session=null; profile=null; loginView();
+    return;
+  }
   session=s;
   if(supabase){
-    const {data:p}=await supabase.from('profiles').select('*').eq('id',s.user.id).single();
-    profile=p || {full_name:s.user.email,role:'staff'};
+    // Only accounts explicitly assigned staff/owner in profiles may enter the back office.
+    const {data:p,error}=await supabase.from('profiles').select('*').eq('id',s.user.id).maybeSingle();
+    if(error || !p || !['owner','staff'].includes(String(p.role||'').toLowerCase())){
+      await supabase.auth.signOut();
+      session=null; profile=null;
+      loginView();
+      toast('บัญชีนี้ไม่มีสิทธิ์เข้าถึงระบบหลังบ้าน กรุณาเข้าสู่ระบบด้วยบัญชีพนักงานหรือผู้ดูแลร้าน',true);
+      return;
+    }
+    profile=p;
     await refresh();
   } else loadDemo();
   render();
