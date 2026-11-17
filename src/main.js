@@ -129,8 +129,11 @@ function page(){
  if(active==='overview')return `<div class="welcome-row"><div><span class="eyebrow">TUESDAY · SALON OVERVIEW</span><h1>สวัสดี, ${esc(profile?.full_name||'Phoenix')} <span class="gold">✦</span></h1><p class="muted">ภาพรวมการดำเนินงานของ Phoenix Zpell วันนี้</p></div><button class="primary" data-go="booking">＋ สร้างการจอง</button></div><div class="stats-grid"><article class="stat-card dark"><span>APPOINTMENTS TODAY</span><strong>${today.length.toString().padStart(2,'0')}</strong><small>คิวที่นัดหมายวันนี้</small></article><article class="stat-card"><span>ACTIVE STYLISTS</span><strong>${cache.staff.length.toString().padStart(2,'0')}</strong><small>ทีมช่างของเรา</small></article><article class="stat-card"><span>REGISTERED MEMBERS</span><strong>${cache.members.length.toString().padStart(2,'0')}</strong><small>สมาชิกทั้งหมด</small></article><article class="stat-card"><span>COMPLETED REVENUE</span><strong>${money(revenue)}</strong><small>ยอดจากคิวที่เสร็จสิ้น</small></article></div><div class="section-head"><div><span class="eyebrow">DAILY SCHEDULE</span><h3>คิววันนี้</h3></div><button class="quiet" data-go="schedule">ดูตารางงาน →</button></div>${appointmentTable(today)}`;
  if(active==='booking')return `<div class="section-head"><div><span class="eyebrow">NEW APPOINTMENT</span><h3>สร้างการจองใหม่</h3><p class="muted">เลือกบริการ ช่าง และเวลาที่ลูกค้าสะดวก</p></div></div><div class="panel form-panel"><form id="bookingForm" class="form-grid"><label>ชื่อลูกค้า<input name="customer_name" placeholder="ชื่อลูกค้า" required></label><label>เบอร์โทรศัพท์<input name="phone" placeholder="เบอร์โทรศัพท์"></label><label>วันที่<input name="appointment_date" type="date" value="${dateToday()}" required></label><label>เวลา<input name="appointment_time" type="time" value="10:00" required></label><label>ช่างผู้ให้บริการ<select name="staff_id" required>${cache.staff.map(s=>`<option value="${s.id}">${esc(s.nickname)} — ${esc(s.name_th)}</option>`).join('')}</select></label><label>บริการ<select name="service_id" id="serviceSelect" required>${cache.services.map(s=>`<option value="${s.id}">${esc(s.name)} · ${money(s.price_min)}${s.price_max>s.price_min?' – '+money(s.price_max):''}</option>`).join('')}</select></label><label>ราคาประเมิน (บาท)<input name="price" id="priceInput" type="number" min="0" value="${cache.services[0]?.price_min||0}" required></label><label>หมายเหตุ<input name="notes" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></label><div class="form-actions"><button class="primary">บันทึกการจอง</button></div></form></div>`;
  if(active==='schedule')return `<div class="section-head"><div><span class="eyebrow">APPOINTMENT LIST</span><h3>ตารางงาน</h3></div><input class="search" id="scheduleSearch" placeholder="ค้นหาลูกค้า / ช่าง"></div>${appointmentTable(ap)}`;
- if(active==='staff')return `<div class="section-head"><div><span class="eyebrow">OUR PROFESSIONAL TEAM</span><h3>ทะเบียนช่าง</h3><p class="muted">ทีมผู้เชี่ยวชาญ Phoenix Zpell</p></div></div><div class="staff-grid">${cache.staff.map(s=>`<article class="staff-card"><div class="initial">${esc(s.nickname.slice(0,2))}</div><div><h3>${esc(s.nickname)}</h3><b>${esc(s.name_th)}</b><p>${esc(s.role)}</p><small>${esc(s.specialty)}</small></div></article>`).join('')}</div>`;
- if(active==='services')return `<div class="section-head"><div><span class="eyebrow">SERVICE MENU</span><h3>ประเภทบริการ</h3><p class="muted">ราคาเริ่มต้นและช่วงราคาตามความยาวผม</p></div></div>${catalog.map(c=>`<div class="service-group"><div class="group-title"><div><h3>${c[0]}</h3><small>${c[1]}</small></div><span>${c[2].length} SERVICES</span></div><div class="service-list">${cache.services.filter(s=>s.category_th===c[0]).map(s=>`<div class="service-row"><div><b>${esc(s.name)}</b><small>${esc(s.description||'')}</small></div><strong>${money(s.price_min)}${s.price_max>s.price_min?' – '+money(s.price_max):''}${s.price_note||''}</strong></div>`).join('')}</div></div>`).join('')}`;
+ if(active==='staff')return `<div class="section-head"><div><span class="eyebrow">OUR PROFESSIONAL TEAM</span><h3>ทะเบียนช่าง</h3><p class="muted">ทีมผู้เชี่ยวชาญ Phoenix Zpell</p></div><button class="primary" id="addStaff">＋ เพิ่มช่างใหม่</button></div><div class="staff-grid">${cache.staff.map(s=>`<article class="staff-card"><div class="initial">${esc((s.nickname||'').slice(0,2))}</div><div><h3>${esc(s.nickname||'')}</h3><b>${esc(s.name_th||'')}</b><p>${esc(s.role||'')}</p><small>${esc(s.specialty||'')}</small></div></article>`).join('')||'<p class="empty">ยังไม่มีข้อมูลช่าง</p>'}</div>`;
+ if(active==='services') {
+   const categories=[...new Map(cache.services.map(s=>[s.category_th,{th:s.category_th,en:s.category_en}])).values()];
+   return `<div class="section-head"><div><span class="eyebrow">SERVICE MENU</span><h3>ประเภทบริการ</h3><p class="muted">ราคาเริ่มต้นและช่วงราคาตามความยาวผม</p></div><button class="primary" id="addService">＋ เพิ่มบริการ</button></div>${categories.map(c=>`<div class="service-group"><div class="group-title"><div><h3>${esc(c.th||'')}</h3><small>${esc(c.en||'')}</small></div><span>${cache.services.filter(s=>s.category_th===c.th).length} SERVICES</span></div><div class="service-list">${cache.services.filter(s=>s.category_th===c.th).map(s=>`<div class="service-row"><div><b>${esc(s.name)}</b><small>${esc(s.description||'')}</small></div><strong>${money(s.price_min)}${s.price_max>s.price_min?' – '+money(s.price_max):''}</strong></div>`).join('')}</div></div>`).join('')||'<p class="empty">ยังไม่มีบริการ</p>'}`;
+ }
  if(active==='members')return `<div class="section-head"><div><span class="eyebrow">CLIENT DIRECTORY</span><h3>ทะเบียนสมาชิก</h3></div><button class="primary" id="addMember">＋ เพิ่มสมาชิก</button></div><div class="panel"><input class="search wide" id="memberSearch" placeholder="ค้นหาชื่อหรือเบอร์โทรศัพท์"><div id="memberRows">${memberRows(cache.members)}</div></div>`;
  if(active==='reports')return `<div class="section-head"><div><span class="eyebrow">BUSINESS PERFORMANCE</span><h3>รายงานผลดำเนินงาน</h3></div></div><div class="stats-grid"><article class="stat-card dark"><span>REVENUE · ALL LOADED</span><strong>${money(revenue)}</strong><small>ยอดบริการที่เสร็จสิ้น</small></article><article class="stat-card"><span>COMPLETED</span><strong>${ap.filter(a=>a.status==='completed').length}</strong><small>คิวที่ให้บริการแล้ว</small></article><article class="stat-card"><span>UPCOMING</span><strong>${ap.filter(a=>a.status==='confirmed'||a.status==='waiting').length}</strong><small>คิวรอดำเนินการ</small></article><article class="stat-card"><span>MEMBERS</span><strong>${cache.members.length}</strong><small>สมาชิกในระบบ</small></article></div><div class="panel"><h3>รายการนัดหมายและสถานะ</h3>${appointmentTable(ap)}</div>`;
  if(active==='profile')return `<div class="section-head"><div><span class="eyebrow">MY ACCOUNT</span><h3>โปรไฟล์ผู้ใช้งาน</h3><p class="muted">ข้อมูลบัญชีที่ใช้เข้าสู่ระบบ Phoenix Zpell</p></div></div><div class="panel settings-panel"><div class="profile-heading"><div class="user-avatar profile-avatar" id="profileAvatarPreview" style="width:104px;height:104px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-size:2rem">${avatarMarkup()}</div><div><h3>${esc(profile?.full_name||'ผู้ใช้งาน')}</h3><p class="muted">${profile?.role==='owner'?'เจ้าของร้าน':'พนักงาน'}</p></div></div><form id="profileForm" class="form-grid"><label class="avatar-upload-field">รูปโปรไฟล์<input id="avatarFile" name="avatar" type="file" accept="image/png,image/jpeg,image/webp"><small class="muted">รองรับ JPG, PNG, WEBP ขนาดไม่เกิน 3 MB</small></label><label>ชื่อ–นามสกุล<input name="full_name" value="${esc(profile?.full_name||'')}" placeholder="กรอกชื่อ–นามสกุล" required></label><label>อีเมล<input value="${esc(session?.user?.email||'')}" type="email" disabled></label><label>ตำแหน่งผู้ใช้งาน<input value="${profile?.role==='owner'?'เจ้าของร้าน':'พนักงาน'}" disabled></label><div class="form-actions"><button class="primary" type="submit">บันทึกข้อมูลโปรไฟล์</button></div></form><p class="muted">การเปลี่ยนอีเมลและรหัสผ่านให้จัดการผ่านระบบบัญชี Supabase ในขั้นตอนถัดไป</p></div>`;
@@ -138,7 +141,8 @@ function page(){
 }
 function appointmentTable(rows){return `<div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>เวลา</th><th>ลูกค้า</th><th>บริการ</th><th>ช่าง</th><th>ราคา</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>${rows.length?rows.map(a=>`<tr><td class="time">${esc(a.appointment_time||'--:--')}</td><td><b>${esc(a.customer_name)}</b><small>${esc(a.phone||'')}</small></td><td>${esc(a.service_name)}</td><td><span class="stylist-tag">${esc(a.staff_nickname)}</span></td><td>${money(a.price)}</td><td><span class="status ${a.status}">${statusText(a.status)}</span></td><td><select class="status-select" data-status="${a.id}"><option value="">เปลี่ยนสถานะ</option><option value="waiting">รอการบริการ</option><option value="completed">รับบริการแล้ว</option><option value="cancelled">ยกเลิก</option></select></td></tr>`).join(''):`<tr><td colspan="7" class="empty">ยังไม่มีรายการนัดหมาย</td></tr>`}</tbody></table></div></div>`}
 function statusText(s){return ({confirmed:'ยืนยันแล้ว',waiting:'รอการบริการ',completed:'รับบริการแล้ว',cancelled:'ยกเลิก'})[s]||s}
-function memberRows(rows){return `<div class="table-wrap"><table><thead><tr><th>สมาชิก</th><th>เบอร์โทรศัพท์</th><th>วันที่สมัคร</th></tr></thead><tbody>${rows.map(m=>`<tr><td><div class="member-name"><span class="initial mini">${esc(m.full_name.slice(0,1))}</span><b>${esc(m.full_name)}</b></div></td><td>${esc(m.phone||'-')}</td><td>${m.created_at?new Date(m.created_at).toLocaleDateString('th-TH'):'-'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">ยังไม่มีสมาชิก</td></tr>'}</tbody></table></div>`}
+function memberRows(rows){return `<div class="table-wrap"><table><thead><tr><th>สมาชิก</th><th>เบอร์โทรศัพท์</th><th>วันที่สมัคร</th><th>จัดการ</th></tr></thead><tbody>${rows.map(m=>`<tr><td><div class="member-name"><span class="initial mini">${esc((m.full_name||'?').slice(0,1))}</span><b>${esc(m.full_name||'')}</b></div></td><td>${esc(m.phone||'-')}</td><td>${m.created_at?new Date(m.created_at).toLocaleDateString('th-TH'):'-'}</td><td><button class="quiet delete-member" data-delete-member="${esc(m.id)}">ลบสมาชิก</button></td></tr>`).join('')||'<tr><td colspan="4" class="empty">ยังไม่มีสมาชิก</td></tr>'}</tbody></table></div>`}
+
 function wirePage(){
   document.querySelectorAll('[data-profile]').forEach(el=>el.onclick=()=>{active='profile';render();});
   const avatarInput=$('#avatarFile');
@@ -189,6 +193,70 @@ function wirePage(){
  const ms=$('#memberSearch');if(ms)ms.oninput=()=>$('#memberRows').innerHTML=memberRows(cache.members.filter(m=>(m.full_name+' '+(m.phone||'')).toLowerCase().includes(ms.value.toLowerCase())));
  const add=$('#addMember');if(add)add.onclick=async()=>{const name=prompt('ชื่อ-นามสกุลสมาชิก');if(!name)return;const phone=prompt('เบอร์โทรศัพท์')||'';if(supabase){const {error}=await supabase.from('members').insert({full_name:name,phone});if(error)return toast(error.message,true);await refresh();}else cache.members.unshift({id:'m'+Date.now(),full_name:name,phone,created_at:new Date().toISOString()});render();toast('เพิ่มสมาชิกแล้ว');};
  const ss=$('#scheduleSearch');if(ss)ss.oninput=()=>{const q=ss.value.toLowerCase();const filtered=cache.appointments.filter(a=>(a.customer_name+a.staff_nickname+a.service_name).toLowerCase().includes(q));$('.table-panel').outerHTML=appointmentTable(filtered);wireStatusOnly();};
+  const addStaff=$('#addStaff');
+  if(addStaff)addStaff.onclick=async()=>{
+    const nickname=prompt('ชื่อเล่นช่าง เช่น NU');
+    if(!nickname?.trim())return;
+    const name_th=prompt('ชื่อช่าง เช่น ช่างนุ');
+    if(!name_th?.trim())return;
+    const role=prompt('ตำแหน่ง เช่น Senior Hair Stylist')||'';
+    const specialty=prompt('ความเชี่ยวชาญ')||'';
+    const row={nickname:nickname.trim(),name_th:name_th.trim(),role:role.trim(),specialty:specialty.trim(),active:true};
+    addStaff.disabled=true;
+    try{
+      if(supabase){const {error}=await supabase.from('staff').insert(row);if(error)throw error;await refresh();}
+      else cache.staff.push({...row,id:'staff'+Date.now()});
+      render();toast('เพิ่มช่างเรียบร้อยแล้ว');
+    }catch(err){toast(err.message||'เพิ่มช่างไม่สำเร็จ',true);addStaff.disabled=false;}
+  };
+
+  const addService=$('#addService');
+  if(addService)addService.onclick=async()=>{
+    const category_th=prompt('ชื่อประเภทบริการภาษาไทย');
+    if(!category_th?.trim())return;
+    const category_en=prompt('ชื่อประเภทบริการภาษาอังกฤษ');
+    if(!category_en?.trim())return;
+    const name=prompt('ชื่อบริการภาษาอังกฤษ');
+    if(!name?.trim())return;
+    const description=prompt('รายละเอียดบริการภาษาไทย')||'';
+    const minRaw=prompt('ราคาเริ่มต้น (บาท)');
+    if(minRaw===null||minRaw.trim()==='')return;
+    const price_min=Number(minRaw);
+    if(!Number.isFinite(price_min)||price_min<0)return toast('กรุณากรอกราคาเริ่มต้นให้ถูกต้อง',true);
+    const maxRaw=prompt('ราคาสูงสุด (บาท)');
+    if(maxRaw===null||maxRaw.trim()==='')return;
+    const price_max=Number(maxRaw);
+    if(!Number.isFinite(price_max)||price_max<price_min)return toast('ราคาสูงสุดต้องไม่น้อยกว่าราคาเริ่มต้น',true);
+    const row={category_th:category_th.trim(),category_en:category_en.trim(),name:name.trim(),description:description.trim(),price_min,price_max,active:true};
+    addService.disabled=true;
+    try{
+      if(supabase){const {error}=await supabase.from('services').insert(row);if(error)throw error;await refresh();}
+      else cache.services.push({...row,id:'service'+Date.now()});
+      render();toast('เพิ่มบริการเรียบร้อยแล้ว');
+    }catch(err){toast(err.message||'เพิ่มบริการไม่สำเร็จ',true);addService.disabled=false;}
+  };
+
+  document.querySelectorAll('[data-delete-member]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const id=btn.dataset.deleteMember;
+      const member=cache.members.find(m=>String(m.id)===String(id));
+      if(!member)return;
+      if(!confirm(`ต้องการลบสมาชิก "${member.full_name}" ใช่หรือไม่?`))return;
+      btn.disabled=true;
+      try{
+        if(supabase){
+          const {count,error:checkError}=await supabase.from('appointments').select('id',{count:'exact',head:true}).eq('member_id',id);
+          if(checkError)throw checkError;
+          if((count||0)>0){toast('สมาชิกนี้มีประวัติการจอง จึงยังลบไม่ได้ เพื่อรักษาประวัติการใช้บริการ',true);btn.disabled=false;return;}
+          const {error}=await supabase.from('members').delete().eq('id',id);
+          if(error)throw error;
+          await refresh();
+        }else cache.members=cache.members.filter(m=>String(m.id)!==String(id));
+        render();toast('ลบสมาชิกเรียบร้อยแล้ว');
+      }catch(err){toast(err.message||'ลบสมาชิกไม่สำเร็จ',true);btn.disabled=false;}
+    };
+  });
+
  const l2=$('#logout2');if(l2)l2.onclick=()=>$('#logout').click();
 }
 function wireStatusOnly(){document.querySelectorAll('[data-status]').forEach(s=>s.onchange=async()=>{if(!s.value)return;if(supabase){await supabase.from('appointments').update({status:s.value}).eq('id',s.dataset.status);await refresh();}else{const a=cache.appointments.find(x=>x.id===s.dataset.status);if(a)a.status=s.value;}render();});}
