@@ -2219,15 +2219,7 @@ if (addStaff) {
         if (!data?.success) {
           throw new Error('ไม่สามารถบันทึกยอดขายได้');
         }
-        
-       ${items.map(item => `
-  <div class="receipt-line">
-    <span>${esc(item.service_name)}</span>
-    <b>${money(item.unit_price)}</b>
-  </div>
-  <small>ช่าง: ${esc(item.staff_name || '-')}</small>
-`).join('')}
-
+      
 
         // ==========================================
         // SHOW RECEIPT
@@ -2267,11 +2259,11 @@ if (addStaff) {
                 <span>${esc(item.service_name)}</span>
                 <b>${money(item.line_total)}</b>
               </div>
-              <small>
-                ช่าง: ${esc(item.staff_name || '-')}
-                | คอมมิชชัน ${Number(item.commission_rate)}%:
-                ${money(item.commission_amount)}
-              </small>
+             
+<small>
+  ช่าง: ${esc(item.staff_name || '-')}
+</small>
+
             `).join('')}
 
 
