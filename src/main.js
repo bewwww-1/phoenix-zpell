@@ -1579,23 +1579,7 @@ if (addStaff) {
 }
 
 
-      try {
-        if (supabase) {
-          const { error } = await supabase.from('staff').insert(row);
-          if (error) throw error;
-          await refresh();
-        } else {
-          cache.staff.push({ ...row, id: 'staff' + Date.now() });
-        }
-
-        render();
-        toast('เพิ่มช่างเรียบร้อยแล้ว');
-
-      } catch (err) {
-        toast(err.message || 'เพิ่มช่างไม่สำเร็จ', true);
-      }
-    };
-  }
+     
 
   // ADD SERVICE
   const addService = $('#addService');
