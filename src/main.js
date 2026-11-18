@@ -2860,70 +2860,8 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
 
      
 
-  // ADD SERVICE
-  const addService = $('#addService');
 
-  if (addService) {
-    addService.onclick = async () => {
-      const category_th = prompt('ชื่อประเภทบริการภาษาไทย');
-      if (!category_th?.trim()) return;
 
-      const category_en = prompt('ชื่อประเภทบริการภาษาอังกฤษ');
-      if (!category_en?.trim()) return;
-
-      const name = prompt('ชื่อบริการภาษาอังกฤษ');
-      if (!name?.trim()) return;
-
-      const description = prompt('รายละเอียดบริการภาษาไทย') || '';
-
-      const minRaw = prompt('ราคาเริ่มต้น (บาท)');
-      if (minRaw === null || minRaw.trim() === '') return;
-
-      const price_min = Number(minRaw);
-
-      if (!Number.isFinite(price_min) || price_min < 0) {
-        return toast('กรุณากรอกราคาเริ่มต้นให้ถูกต้อง', true);
-      }
-
-      const maxRaw = prompt('ราคาสูงสุด (บาท)');
-      if (maxRaw === null || maxRaw.trim() === '') return;
-
-      const price_max = Number(maxRaw);
-
-      if (!Number.isFinite(price_max) || price_max < price_min) {
-        return toast('ราคาสูงสุดต้องไม่น้อยกว่าราคาเริ่มต้น', true);
-      }
-
-      const row = {
-        category_th: category_th.trim(),
-        category_en: category_en.trim(),
-        name: name.trim(),
-        description: description.trim(),
-        price_min,
-        price_max,
-        active: true
-      };
-
-      try {
-        if (supabase) {
-          const { error } = await supabase.from('services').insert(row);
-          if (error) throw error;
-          await refresh();
-        } else {
-          cache.services.push({
-            ...row,
-            id: 'service' + Date.now()
-          });
-        }
-
-        render();
-        toast('เพิ่มบริการเรียบร้อยแล้ว');
-
-      } catch (err) {
-        toast(err.message || 'เพิ่มบริการไม่สำเร็จ', true);
-      }
-    };
-  }
 
   wireDeleteMembers();
 
