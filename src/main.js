@@ -2357,6 +2357,140 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
   };
 });
 
+  
+  // ==========================================
+  // ADD SERVICE MODAL
+  // ==========================================
+
+  const addService = $('#addService');
+  const serviceModal = $('#serviceModal');
+  const serviceForm = $('#serviceForm');
+
+  const closeServiceModal = () => {
+    if (serviceModal) {
+      serviceModal.style.display = 'none';
+    }
+  };
+
+  if (addService && serviceModal) {
+    addService.onclick = () => {
+      if (profile?.role !== 'owner') {
+        return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+      }
+
+      serviceModal.style.display = 'flex';
+    };
+  }
+
+  $('#closeServiceModal')?.addEventListener(
+    'click',
+    closeServiceModal
+  );
+
+  $('#cancelServiceModal')?.addEventListener(
+    'click',
+    closeServiceModal
+  );
+
+  serviceModal?.addEventListener('click', e => {
+    if (e.target === serviceModal) {
+      closeServiceModal();
+    }
+  });
+
+  // SAVE SERVICE
+  if (serviceForm) {
+    serviceForm.onsubmit = async e => {
+      e.preventDefault();
+
+      if (profile?.role !== 'owner') {
+        return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+      }
+
+      const f = new FormData(serviceForm);
+
+      const categoryTh = String(
+        f.get('category_th') || ''
+      ).trim();
+
+      const categoryEn = String(
+        f.get('category_en') || ''
+      ).trim();
+
+      const name = String(
+        f.get('name') || ''
+      ).trim();
+
+      const description = String(
+        f.get('description') || ''
+      ).trim();
+
+      const priceMin = Number(f.get('price_min'));
+      const priceMaxRaw = f.get('price_max');
+      const priceMax = priceMaxRaw === ''
+        ? priceMin
+        : Number(priceMaxRaw);
+
+      const duration = Number(
+        f.get('duration_minutes')
+      );
+
+      const priceNote = String(
+        f.get('price_note') || ''
+      ).trim();
+
+      if (
+        !categoryTh ||
+        !name ||
+        !Number.isFinite(priceMin) ||
+        priceMin < 0 ||
+        !Number.isFinite(priceMax) ||
+        priceMax < priceMin ||
+        !Number.isInteger(duration) ||
+        duration < 1
+      ) {
+        return toast('กรุณาตรวจสอบข้อมูลและราคาให้ถูกต้อง', true);
+      }
+
+      const saveButton = $('#saveService');
+      if (saveButton) saveButton.disabled = true;
+
+      try {
+        const { error } = await supabase
+          .from('services')
+          .insert({
+            category_th: categoryTh,
+            category_en: categoryEn,
+            name,
+            description,
+            price_min: priceMin,
+            price_max: priceMax,
+            duration_minutes: duration,
+            price_note: priceNote,
+            active: true
+          });
+
+        if (error) throw error;
+
+        await refresh();
+
+        closeServiceModal();
+        serviceForm.reset();
+
+        render();
+
+        toast('เพิ่มบริการเรียบร้อยแล้ว');
+
+      } catch (err) {
+        console.error('Add service error:', err);
+        toast(err.message || 'เพิ่มบริการไม่สำเร็จ', true);
+
+      } finally {
+        if (saveButton) saveButton.disabled = false;
+      }
+    };
+  }
+
 
 
   // CREATE STAFF ACCOUNT
