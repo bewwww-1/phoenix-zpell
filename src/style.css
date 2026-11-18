@@ -178,3 +178,16 @@
 #editStaffModal .modal-card {
   max-width: 650px;
 }
+
+.staff-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.staff-card-actions button {
+  cursor: pointer;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+}
