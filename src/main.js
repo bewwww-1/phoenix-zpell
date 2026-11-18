@@ -1204,50 +1204,46 @@ if (active === 'services') {
           </span>
         </div>
 
-        <div class="service-list">
-          ${cache.services
-            .filter(s => s.category_th === c.th)
-          
-.map(s => `
-  <div class="service-row">
-    <div class="service-info">
-      <b>${esc(s.name)}</b>
-      <small>${esc(s.description || '')}</small>
-      <small>${Number(s.duration_minutes || 60)} นาที</small>
-      ${s.price_note
-        ? `<small>${esc(s.price_note)}</small>`
-        : ''}
-    </div>
+       
+<div class="service-list">
+  ${cache.services
+    .filter(s => s.category_th === c.th)
+    .map(s => `
+      <div class="service-row">
+        <div class="service-info">
+          <b>${esc(s.name)}</b>
+          <small>${esc(s.description || '')}</small>
+          <small>${Number(s.duration_minutes || 60)} นาที</small>
+          ${s.price_note
+            ? `<small>${esc(s.price_note)}</small>`
+            : ''}
+        </div>
 
-    <div class="service-price">
-      <strong>
-        ${money(s.price_min)}
-        ${s.price_max > s.price_min
-          ? ' – ' + money(s.price_max)
-          : ''}
-      </strong>
+        <div class="service-price">
+          <strong>
+            ${money(s.price_min)}
+            ${s.price_max > s.price_min
+              ? ' – ' + money(s.price_max)
+              : ''}
+          </strong>
 
-      <div class="service-actions">
-        <button type="button"
-          class="secondary edit-service"
-          data-id="${esc(s.id)}">
-          ✏️ แก้ไข
-        </button>
+          <div class="service-actions">
+            <button type="button"
+              class="secondary edit-service"
+              data-id="${esc(s.id)}">
+              ✏️ แก้ไข
+            </button>
 
-        <button type="button"
-          class="danger delete-service"
-          data-id="${esc(s.id)}">
-          🗑️ ลบ
-        </button>
-      </div>
-    </div>
-  </div>
-`)
-
-            `).join('')}
+            <button type="button"
+              class="danger delete-service"
+              data-id="${esc(s.id)}">
+              🗑️ ลบ
+            </button>
+          </div>
         </div>
       </div>
-    `).join('') || '<p class="empty">ยังไม่มีบริการ</p>'}
+    `).join('')}
+</div>
 
     <!-- ADD SERVICE MODAL -->
     <div class="modal-overlay" id="serviceModal" style="display:none">
