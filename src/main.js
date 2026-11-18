@@ -1488,26 +1488,96 @@ function wirePage() {
   }
 
   // ADD STAFF
-  const addStaff = $('#addStaff');
+  
+const addStaff = $('#addStaff');
 
-  if (addStaff) {
-    addStaff.onclick = async () => {
-      const nickname = prompt('ชื่อเล่นช่าง เช่น NU');
-      if (!nickname?.trim()) return;
+if (addStaff) {
+  addStaff.onclick = async () => {
+    if (profile?.role !== 'owner') {
+      return toast('เฉพาะเจ้าของร้านเท่านั้นที่สร้างพนักงานได้', true);
+    }
 
-      const name_th = prompt('ชื่อช่าง เช่น ช่างนุ');
-      if (!name_th?.trim()) return;
+    const nickname = prompt('ชื่อเล่นพนักงาน');
+    if (!nickname?.trim()) return;
 
-      const role = prompt('ตำแหน่ง เช่น Senior Hair Stylist') || '';
-      const specialty = prompt('ความเชี่ยวชาญ') || '';
+    const name_th = prompt('ชื่อ–นามสกุล');
+    if (!name_th?.trim()) return;
 
-      const row = {
-        nickname: nickname.trim(),
-        name_th: name_th.trim(),
-        role: role.trim(),
-        specialty: specialty.trim(),
-        active: true
-      };
+    const email = prompt('อีเมลสำหรับเข้าสู่ระบบ');
+    if (!email?.trim()) return;
+
+    const password = prompt('กำหนดรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)');
+    if (!password || password.length < 8) {
+      return toast('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', true);
+    }
+
+    const accountRole = prompt(
+      'กำหนดตำแหน่งบัญชี: manager, receptionist, stylist หรือ assistant'
+    );
+
+    const allowedRoles = [
+      'manager',
+      'receptionist',
+      'stylist',
+      'assistant'
+    ];
+
+    if (!allowedRoles.includes(accountRole)) {
+      return toast('กรุณาระบุตำแหน่งให้ถูกต้อง', true);
+    }
+
+    const specialty = prompt('ความเชี่ยวชาญ') || '';
+    const jobTitle = prompt('ตำแหน่งงาน เช่น Senior Hair Stylist') || '';
+
+    addStaff.disabled = true;
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'create-staff',
+        {
+          body: {
+            full_name: name_th.trim(),
+            email: email.trim(),
+            password,
+            role: accountRole
+          }
+        }
+      );
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const { error: staffError } = await supabase
+        .from('staff')
+        .insert({
+          nickname: nickname.trim(),
+          name_th: name_th.trim(),
+          role: jobTitle.trim(),
+          specialty: specialty.trim(),
+          active: true
+        });
+
+      if (staffError) {
+        throw new Error(
+          'สร้างบัญชีสำเร็จแล้ว แต่เพิ่มข้อมูลทะเบียนช่างไม่สำเร็จ: ' +
+          staffError.message
+        );
+      }
+
+      await refresh();
+      render();
+      toast('สร้างบัญชีและเพิ่มพนักงานเรียบร้อยแล้ว');
+
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'สร้างบัญชีพนักงานไม่สำเร็จ', true);
+
+    } finally {
+      addStaff.disabled = false;
+    }
+  };
+}
+
 
       try {
         if (supabase) {
