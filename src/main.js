@@ -1168,61 +1168,137 @@ if (active === 'pos') {
 }
 
   
-  if (active === 'services') {
-    const categories = [
-      ...new Map(
-        cache.services.map(s => [
-          s.category_th,
-          { th: s.category_th, en: s.category_en }
-        ])
-      ).values()
-    ];
+  
+if (active === 'services') {
+  const categories = [
+    ...new Map(
+      cache.services.map(s => [
+        s.category_th,
+        { th: s.category_th, en: s.category_en }
+      ])
+    ).values()
+  ];
 
-    return `
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">SERVICE MENU</span>
-          <h3>ประเภทบริการ</h3>
-          <p class="muted">ราคาเริ่มต้นและช่วงราคาตามความยาวผม</p>
-        </div>
-        <button class="primary" id="addService">＋ เพิ่มบริการ</button>
+  return `
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">SERVICE MENU</span>
+        <h3>ประเภทบริการ</h3>
+        <p class="muted">จัดการรายการบริการ ราคา และระยะเวลา</p>
       </div>
+      <button class="primary" id="addService">
+        ＋ เพิ่มบริการ
+      </button>
+    </div>
 
-      ${categories.map(c => `
-        <div class="service-group">
-          <div class="group-title">
-            <div>
-              <h3>${esc(c.th || '')}</h3>
-              <small>${esc(c.en || '')}</small>
-            </div>
-            <span>
-              ${cache.services.filter(s => s.category_th === c.th).length}
-              SERVICES
-            </span>
+    ${categories.map(c => `
+      <div class="service-group">
+        <div class="group-title">
+          <div>
+            <h3>${esc(c.th || '')}</h3>
+            <small>${esc(c.en || '')}</small>
           </div>
-
-          <div class="service-list">
-            ${cache.services
-              .filter(s => s.category_th === c.th)
-              .map(s => `
-                <div class="service-row">
-                  <div>
-                    <b>${esc(s.name)}</b>
-                    <small>${esc(s.description || '')}</small>
-                  </div>
-                  <strong>
-                    ${money(s.price_min)}
-                    ${s.price_max > s.price_min
-                      ? ' – ' + money(s.price_max)
-                      : ''}
-                  </strong>
-                </div>
-              `).join('')}
-          </div>
+          <span>
+            ${cache.services.filter(s => s.category_th === c.th).length}
+            SERVICES
+          </span>
         </div>
-      `).join('') || '<p class="empty">ยังไม่มีบริการ</p>'}
-    `;
-  }
+
+        <div class="service-list">
+          ${cache.services
+            .filter(s => s.category_th === c.th)
+            .map(s => `
+              <div class="service-row">
+                <div>
+                  <b>${esc(s.name)}</b>
+                  <small>${esc(s.description || '')}</small>
+                  <small>${Number(s.duration_minutes || 60)} นาที</small>
+                </div>
+                <strong>
+                  ${money(s.price_min)}
+                  ${s.price_max > s.price_min
+                    ? ' – ' + money(s.price_max)
+                    : ''}
+                </strong>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    `).join('') || '<p class="empty">ยังไม่มีบริการ</p>'}
+
+    <!-- ADD SERVICE MODAL -->
+    <div class="modal-overlay" id="serviceModal" style="display:none">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">SERVICE MANAGEMENT</span>
+            <h3>เพิ่มบริการใหม่</h3>
+            <p class="muted">กรอกรายละเอียดบริการให้ครบถ้วน</p>
+          </div>
+          <button type="button" class="modal-close"
+            id="closeServiceModal">✕</button>
+        </div>
+
+        <form id="serviceForm" class="form-grid">
+
+          <label>หมวดหมู่บริการ (ภาษาไทย)
+            <input name="category_th" required
+              placeholder="เช่น ทำสีผม">
+          </label>
+
+          <label>หมวดหมู่บริการ (ภาษาอังกฤษ)
+            <input name="category_en"
+              placeholder="เช่น Hair Color">
+          </label>
+
+          <label>ชื่อบริการ
+            <input name="name" required
+              placeholder="เช่น Hair Coloring">
+          </label>
+
+          <label>รายละเอียดบริการ
+            <input name="description"
+              placeholder="รายละเอียดบริการ">
+          </label>
+
+          <label>ราคาเริ่มต้น (บาท)
+            <input name="price_min" type="number"
+              min="0" step="0.01" required>
+          </label>
+
+          <label>ราคาสูงสุด (บาท)
+            <input name="price_max" type="number"
+              min="0" step="0.01">
+          </label>
+
+          <label>ระยะเวลาให้บริการ (นาที)
+            <input name="duration_minutes" type="number"
+              min="1" value="60" required>
+          </label>
+
+          <label>หมายเหตุราคา
+            <input name="price_note"
+              placeholder="เช่น ราคาขึ้นอยู่กับความยาวผม">
+          </label>
+
+          <div class="form-actions">
+            <button type="button" class="secondary"
+              id="cancelServiceModal">
+              ยกเลิก
+            </button>
+
+            <button type="submit" class="primary"
+              id="saveService">
+              บันทึกบริการ
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  `;
+}
+
 
   if (active === 'members') {
     return `
