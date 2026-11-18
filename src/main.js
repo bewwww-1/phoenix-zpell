@@ -2147,10 +2147,9 @@ document.querySelectorAll('.edit-staff').forEach(button => {
     editStaffForm.elements.active.value =
       String(staff.active !== false);
 
-    editStaffModal.style.display = 'flex';
+ editStaffModal.style.display = 'flex';
   };
-};
-
+});
 // CLOSE MODAL
 $('#closeEditStaffModal')?.addEventListener(
   'click',
