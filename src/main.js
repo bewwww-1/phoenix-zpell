@@ -869,6 +869,15 @@ if (active === 'staff') {
   >
     ✏️ แก้ไขข้อมูล
   </button>
+
+  <button
+    type="button"
+    class="${s.active === false ? 'primary' : 'secondary'} toggle-staff"
+    data-id="${esc(s.id)}"
+    data-active="${s.active !== false}"
+  >
+    ${s.active === false ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+  </button>
 </div>
 <!-- EDIT STAFF MODAL -->
 <div class="modal-overlay" id="editStaffModal" style="display:none">
