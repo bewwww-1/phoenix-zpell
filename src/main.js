@@ -2362,7 +2362,7 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
   // ADD SERVICE MODAL
   // ==========================================
 
-  const addService = $('#addService');
+  const addServiceButton = $('#addService');
   const serviceModal = $('#serviceModal');
   const serviceForm = $('#serviceForm');
 
