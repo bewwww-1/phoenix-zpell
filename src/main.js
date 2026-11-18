@@ -1891,8 +1891,9 @@ if (addStaff) {
   }
 
  
+  
   // ==========================================
-  // POS - CALCULATE TOTAL
+  // POS - CALCULATE TOTAL + SAVE SALE + RECEIPT
   // ==========================================
 
   const posForm = $('#posForm');
@@ -1917,15 +1918,18 @@ if (addStaff) {
         maximumFractionDigits: 2
       }) + ' บาท';
 
+    const getSelectedServices = () => [
+      ...posForm.querySelectorAll(
+        'input[name="service_ids"]:checked'
+      )
+    ];
+
     const calculatePOS = () => {
-      const selectedServices = [
-        ...posForm.querySelectorAll(
-          'input[name="service_ids"]:checked'
-        )
-      ];
+      const selectedServices = getSelectedServices();
 
       const subtotal = selectedServices.reduce(
-        (sum, item) => sum + (Number(item.dataset.price) || 0),
+        (sum, item) =>
+          sum + (Number(item.dataset.price) || 0),
         0
       );
 
@@ -1947,20 +1951,237 @@ if (addStaff) {
       discountEl.textContent = money(discount);
       totalEl.textContent = money(total);
 
-      if (difference >= 0) {
-        changeEl.textContent = money(difference);
-      } else {
-        changeEl.textContent =
-          'ขาดอีก ' + money(Math.abs(difference));
-      }
+      changeEl.textContent = difference >= 0
+        ? money(difference)
+        : 'ขาดอีก ' + money(Math.abs(difference));
+
+      return {
+        subtotal,
+        discount,
+        total,
+        received,
+        change: Math.max(difference, 0)
+      };
     };
 
     posForm.addEventListener('change', calculatePOS);
     posForm.addEventListener('input', calculatePOS);
 
     calculatePOS();
-  }
 
+    // ==========================================
+    // SAVE SALE
+    // ==========================================
+
+    posForm.onsubmit = async (event) => {
+      event.preventDefault();
+
+      if (!supabase) {
+        return toast('ไม่สามารถเชื่อมต่อ Supabase ได้', true);
+      }
+
+      const allowedRoles = [
+        'owner',
+        'manager',
+        'receptionist'
+      ];
+
+      if (!allowedRoles.includes(profile?.role)) {
+        return toast('ไม่มีสิทธิ์ใช้งานระบบขายหน้าร้าน', true);
+      }
+
+      const selectedServices = getSelectedServices();
+
+      if (selectedServices.length === 0) {
+        return toast('กรุณาเลือกบริการอย่างน้อย 1 รายการ', true);
+      }
+
+      const totals = calculatePOS();
+
+      if (totals.received < totals.total) {
+        return toast('จำนวนเงินที่รับมายังไม่ครบ', true);
+      }
+
+      const formData = new FormData(posForm);
+
+      const customerName =
+        String(formData.get('customer_name') || '').trim();
+
+      const customerPhone =
+        String(formData.get('customer_phone') || '').trim();
+
+      const staffId =
+        String(formData.get('staff_id') || '');
+
+      const paymentMethod =
+        String(formData.get('payment_method') || 'cash');
+
+      if (!customerName) {
+        return toast('กรุณากรอกชื่อลูกค้า', true);
+      }
+
+      const selectedStaff = cache.staff.find(
+        staff => String(staff.id) === staffId
+      );
+
+      const staffName = selectedStaff
+        ? selectedStaff.nickname ||
+          selectedStaff.name_th ||
+          'ช่าง'
+        : '';
+
+      const items = selectedServices.map(input => {
+        const service = cache.services.find(
+          item => String(item.id) === input.value
+        );
+
+        return {
+          service_id: input.value,
+          service_name: service?.name || 'บริการ',
+          staff_id: staffId || null,
+          staff_name: staffName || null,
+          quantity: 1,
+          unit_price: Number(input.dataset.price) || 0
+        };
+      });
+
+      const submitButton =
+        posForm.querySelector('button[type="submit"]');
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'กำลังบันทึก...';
+
+      try {
+        const { data, error } = await supabase.rpc(
+          'create_pos_sale',
+          {
+            p_sale: {
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              discount: totals.discount,
+              payment_method: paymentMethod,
+              amount_received: totals.received
+            },
+            p_items: items
+          }
+        );
+
+        if (error) throw error;
+        if (!data?.success) {
+          throw new Error('ไม่สามารถบันทึกยอดขายได้');
+        }
+
+        // ==========================================
+        // SHOW RECEIPT
+        // ==========================================
+
+        const receiptDate = new Date().toLocaleString('th-TH');
+
+        const paymentNames = {
+          cash: 'เงินสด',
+          transfer: 'โอนเงิน',
+          card: 'บัตรเครดิต / เดบิต'
+        };
+
+        $('#content').innerHTML = `
+          <div class="panel receipt-panel" id="receipt">
+            <div class="receipt-header">
+              <h2>PHOENIX ZPELL</h2>
+              <p>HAIR SPA RITUAL</p>
+              <h3>ใบเสร็จรับเงิน</h3>
+              <p>RECEIPT</p>
+            </div>
+
+            <hr>
+
+            <p>เลขที่ใบเสร็จ: <b>${esc(data.receipt_no)}</b></p>
+            <p>วันที่: ${esc(receiptDate)}</p>
+            <p>ลูกค้า: ${esc(customerName)}</p>
+            <p>เบอร์โทร: ${esc(customerPhone || '-')}</p>
+
+            <hr>
+
+            <h3>รายการบริการ</h3>
+
+            ${items.map(item => `
+              <div class="receipt-line">
+                <span>${esc(item.service_name)}</span>
+                <b>${money(item.unit_price)}</b>
+              </div>
+              <small>ช่าง: ${esc(item.staff_name || '-')}</small>
+            `).join('')}
+
+            <hr>
+
+            <div class="receipt-line">
+              <span>ยอดรวม</span>
+              <b>${money(totals.subtotal)}</b>
+            </div>
+
+            <div class="receipt-line">
+              <span>ส่วนลด</span>
+              <b>${money(totals.discount)}</b>
+            </div>
+
+            <div class="receipt-line receipt-total">
+              <span>ยอดสุทธิ</span>
+              <b>${money(data.total)}</b>
+            </div>
+
+            <div class="receipt-line">
+              <span>วิธีชำระเงิน</span>
+              <b>${paymentNames[paymentMethod]}</b>
+            </div>
+
+            <div class="receipt-line">
+              <span>รับเงิน</span>
+              <b>${money(totals.received)}</b>
+            </div>
+
+            <div class="receipt-line">
+              <span>เงินทอน</span>
+              <b>${money(data.change_amount)}</b>
+            </div>
+
+            <hr>
+
+            <div class="receipt-footer">
+              <h3>ขอบคุณที่ใช้บริการ</h3>
+              <p>PHOENIX ZPELL HAIR SPA RITUAL</p>
+            </div>
+          </div>
+
+          <div class="form-actions receipt-actions">
+            <button class="primary" id="printReceipt">
+              พิมพ์ใบเสร็จ
+            </button>
+
+            <button class="secondary" id="newSale">
+              ขายรายการใหม่
+            </button>
+          </div>
+        `;
+
+        $('#printReceipt').onclick = () => {
+          window.print();
+        };
+
+        $('#newSale').onclick = () => {
+          active = 'pos';
+          render();
+        };
+
+        toast('บันทึกยอดขายเรียบร้อยแล้ว');
+
+      } catch (err) {
+        console.error('POS save error:', err);
+        toast(err.message || 'บันทึกยอดขายไม่สำเร็จ', true);
+
+        submitButton.disabled = false;
+        submitButton.textContent = 'รับชำระเงินและออกใบเสร็จ';
+      }
+    };
+  }
 
      
 
