@@ -105,7 +105,17 @@ async function boot(s){
   if(supabase){
     // Only accounts explicitly assigned staff/owner in profiles may enter the back office.
     const {data:p,error}=await supabase.from('profiles').select('*').eq('id',s.user.id).maybeSingle();
-    if(error || !p || !['owner','staff'].includes(String(p.role||'').toLowerCase())){
+    if (
+  error ||
+  !p ||
+  ![
+    'owner',
+    'manager',
+    'receptionist',
+    'stylist',
+    'assistant'
+  ].includes(String(p.role || '').toLowerCase())
+) {
       await supabase.auth.signOut();
       session=null; profile=null;
       loginView();
