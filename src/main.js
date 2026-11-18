@@ -1207,20 +1207,43 @@ if (active === 'services') {
         <div class="service-list">
           ${cache.services
             .filter(s => s.category_th === c.th)
-            .map(s => `
-              <div class="service-row">
-                <div>
-                  <b>${esc(s.name)}</b>
-                  <small>${esc(s.description || '')}</small>
-                  <small>${Number(s.duration_minutes || 60)} นาที</small>
-                </div>
-                <strong>
-                  ${money(s.price_min)}
-                  ${s.price_max > s.price_min
-                    ? ' – ' + money(s.price_max)
-                    : ''}
-                </strong>
-              </div>
+          
+.map(s => `
+  <div class="service-row">
+    <div class="service-info">
+      <b>${esc(s.name)}</b>
+      <small>${esc(s.description || '')}</small>
+      <small>${Number(s.duration_minutes || 60)} นาที</small>
+      ${s.price_note
+        ? `<small>${esc(s.price_note)}</small>`
+        : ''}
+    </div>
+
+    <div class="service-price">
+      <strong>
+        ${money(s.price_min)}
+        ${s.price_max > s.price_min
+          ? ' – ' + money(s.price_max)
+          : ''}
+      </strong>
+
+      <div class="service-actions">
+        <button type="button"
+          class="secondary edit-service"
+          data-id="${esc(s.id)}">
+          ✏️ แก้ไข
+        </button>
+
+        <button type="button"
+          class="danger delete-service"
+          data-id="${esc(s.id)}">
+          🗑️ ลบ
+        </button>
+      </div>
+    </div>
+  </div>
+`)
+
             `).join('')}
         </div>
       </div>
@@ -2359,29 +2382,101 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
 
   
   // ==========================================
-  // ADD SERVICE MODAL
+  // ADD / EDIT SERVICE MODAL
   // ==========================================
 
   const addServiceButton = $('#addService');
   const serviceModal = $('#serviceModal');
   const serviceForm = $('#serviceForm');
+  const serviceModalTitle = serviceModal?.querySelector('.modal-header h3');
+  const saveServiceButton = $('#saveService');
+
+  let editingServiceId = null;
 
   const closeServiceModal = () => {
     if (serviceModal) {
       serviceModal.style.display = 'none';
     }
+
+    editingServiceId = null;
+    serviceForm?.reset();
+
+    if (serviceModalTitle) {
+      serviceModalTitle.textContent = 'เพิ่มบริการใหม่';
+    }
+
+    if (saveServiceButton) {
+      saveServiceButton.textContent = 'บันทึกบริการ';
+    }
   };
 
+  // OPEN ADD MODAL
   if (addServiceButton && serviceModal) {
-  addServiceButton.onclick = () => {
+    addServiceButton.onclick = () => {
       if (profile?.role !== 'owner') {
         return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
       }
+
+      closeServiceModal();
 
       serviceModal.style.display = 'flex';
     };
   }
 
+  // OPEN EDIT MODAL
+  document.querySelectorAll('.edit-service').forEach(button => {
+    button.onclick = () => {
+      if (profile?.role !== 'owner') {
+        return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+      }
+
+      const service = cache.services.find(
+        s => String(s.id) === String(button.dataset.id)
+      );
+
+      if (!service) {
+        return toast('ไม่พบข้อมูลบริการ', true);
+      }
+
+      editingServiceId = service.id;
+
+      serviceForm.elements.category_th.value =
+        service.category_th || '';
+
+      serviceForm.elements.category_en.value =
+        service.category_en || '';
+
+      serviceForm.elements.name.value =
+        service.name || '';
+
+      serviceForm.elements.description.value =
+        service.description || '';
+
+      serviceForm.elements.price_min.value =
+        service.price_min ?? 0;
+
+      serviceForm.elements.price_max.value =
+        service.price_max ?? '';
+
+      serviceForm.elements.duration_minutes.value =
+        service.duration_minutes || 60;
+
+      serviceForm.elements.price_note.value =
+        service.price_note || '';
+
+      if (serviceModalTitle) {
+        serviceModalTitle.textContent = 'แก้ไขข้อมูลบริการ';
+      }
+
+      if (saveServiceButton) {
+        saveServiceButton.textContent = 'บันทึกการแก้ไข';
+      }
+
+      serviceModal.style.display = 'flex';
+    };
+  });
+
+  // CLOSE MODAL
   $('#closeServiceModal')?.addEventListener(
     'click',
     closeServiceModal
@@ -2398,7 +2493,57 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
     }
   });
 
-  // SAVE SERVICE
+  // ==========================================
+  // DELETE SERVICE
+  // ==========================================
+
+  document.querySelectorAll('.delete-service').forEach(button => {
+    button.onclick = async () => {
+      if (profile?.role !== 'owner') {
+        return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+      }
+
+      const serviceId = button.dataset.id;
+
+      const service = cache.services.find(
+        s => String(s.id) === String(serviceId)
+      );
+
+      if (!service) {
+        return toast('ไม่พบข้อมูลบริการ', true);
+      }
+
+      const confirmed = confirm(
+        `ต้องการลบบริการ "${service.name}" ใช่หรือไม่?\n\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้`
+      );
+
+      if (!confirmed) return;
+
+      button.disabled = true;
+
+      try {
+        const { error } = await supabase
+          .from('services')
+          .delete()
+          .eq('id', serviceId);
+
+        if (error) throw error;
+
+        await refresh();
+        render();
+
+        toast('ลบบริการเรียบร้อยแล้ว');
+
+      } catch (err) {
+        console.error('Delete service error:', err);
+        toast(err.message || 'ลบบริการไม่สำเร็จ', true);
+        button.disabled = false;
+      }
+    };
+  });
+
+
+  // SAVE / UPDATE SERVICE
   if (serviceForm) {
     serviceForm.onsubmit = async e => {
       e.preventDefault();
@@ -2409,21 +2554,10 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
 
       const f = new FormData(serviceForm);
 
-      const categoryTh = String(
-        f.get('category_th') || ''
-      ).trim();
-
-      const categoryEn = String(
-        f.get('category_en') || ''
-      ).trim();
-
-      const name = String(
-        f.get('name') || ''
-      ).trim();
-
-      const description = String(
-        f.get('description') || ''
-      ).trim();
+      const categoryTh = String(f.get('category_th') || '').trim();
+      const categoryEn = String(f.get('category_en') || '').trim();
+      const name = String(f.get('name') || '').trim();
+      const description = String(f.get('description') || '').trim();
 
       const priceMin = Number(f.get('price_min'));
       const priceMaxRaw = f.get('price_max');
@@ -2431,13 +2565,8 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
         ? priceMin
         : Number(priceMaxRaw);
 
-      const duration = Number(
-        f.get('duration_minutes')
-      );
-
-      const priceNote = String(
-        f.get('price_note') || ''
-      ).trim();
+      const duration = Number(f.get('duration_minutes'));
+      const priceNote = String(f.get('price_note') || '').trim();
 
       if (
         !categoryTh ||
@@ -2452,41 +2581,59 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
         return toast('กรุณาตรวจสอบข้อมูลและราคาให้ถูกต้อง', true);
       }
 
-      const saveButton = $('#saveService');
-      if (saveButton) saveButton.disabled = true;
+      if (saveServiceButton) {
+        saveServiceButton.disabled = true;
+      }
+
+      const row = {
+        category_th: categoryTh,
+        category_en: categoryEn,
+        name,
+        description,
+        price_min: priceMin,
+        price_max: priceMax,
+        duration_minutes: duration,
+        price_note: priceNote
+      };
 
       try {
-        const { error } = await supabase
-          .from('services')
-          .insert({
-            category_th: categoryTh,
-            category_en: categoryEn,
-            name,
-            description,
-            price_min: priceMin,
-            price_max: priceMax,
-            duration_minutes: duration,
-            price_note: priceNote,
-            active: true
-          });
+        let result;
 
-        if (error) throw error;
+        if (editingServiceId) {
+          result = await supabase
+            .from('services')
+            .update(row)
+            .eq('id', editingServiceId);
+        } else {
+          result = await supabase
+            .from('services')
+            .insert({
+              ...row,
+              active: true
+            });
+        }
+
+        if (result.error) throw result.error;
 
         await refresh();
 
         closeServiceModal();
-        serviceForm.reset();
-
         render();
 
-        toast('เพิ่มบริการเรียบร้อยแล้ว');
+        toast(
+          editingServiceId
+            ? 'แก้ไขบริการเรียบร้อยแล้ว'
+            : 'เพิ่มบริการเรียบร้อยแล้ว'
+        );
 
       } catch (err) {
-        console.error('Add service error:', err);
-        toast(err.message || 'เพิ่มบริการไม่สำเร็จ', true);
+        console.error('Save service error:', err);
+        toast(err.message || 'บันทึกบริการไม่สำเร็จ', true);
 
       } finally {
-        if (saveButton) saveButton.disabled = false;
+        if (saveServiceButton) {
+          saveServiceButton.disabled = false;
+        }
       }
     };
   }
