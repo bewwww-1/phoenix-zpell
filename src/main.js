@@ -751,7 +751,7 @@ function page() {
           <h3>ทะเบียนช่าง</h3>
           <p class="muted">ทีมผู้เชี่ยวชาญ Phoenix Zpell</p>
         </div>
-        <button class="primary" id="addStaff">＋ เพิ่มช่างใหม่</button>
+        <button class="primary" id="addStaff">＋ สร้างบัญชีพนักงาน</button>
       </div>
 
       <div class="staff-grid">
