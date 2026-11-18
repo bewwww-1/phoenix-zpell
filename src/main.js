@@ -2372,8 +2372,8 @@ document.querySelectorAll('.toggle-staff').forEach(button => {
     }
   };
 
-  if (addService && serviceModal) {
-    addService.onclick = () => {
+  if (addServiceButton && serviceModal) {
+  addServiceButton.onclick = () => {
       if (profile?.role !== 'owner') {
         return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
       }
