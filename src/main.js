@@ -2228,6 +2228,59 @@ if (editStaffForm) {
     }
   };
 }
+  
+// ==========================================
+// TOGGLE STAFF STATUS
+// ==========================================
+
+document.querySelectorAll('.toggle-staff').forEach(button => {
+  button.onclick = async () => {
+    if (profile?.role !== 'owner') {
+      return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+    }
+
+    const staffId = button.dataset.id;
+    const currentActive = button.dataset.active === 'true';
+
+    const action = currentActive
+      ? 'ปิดใช้งาน'
+      : 'เปิดใช้งาน';
+
+    const confirmed = confirm(
+      `ต้องการ${action}ช่างคนนี้ใช่หรือไม่?`
+    );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update({ active: !currentActive })
+        .eq('id', staffId);
+
+      if (error) throw error;
+
+      await refresh();
+      render();
+
+      toast(
+        currentActive
+          ? 'ปิดใช้งานช่างเรียบร้อยแล้ว'
+          : 'เปิดใช้งานช่างเรียบร้อยแล้ว'
+      );
+
+    } catch (err) {
+      console.error('Toggle staff error:', err);
+      toast(err.message || 'เปลี่ยนสถานะไม่สำเร็จ', true);
+
+    } finally {
+      button.disabled = false;
+    }
+  };
+});
+
 
 
   // CREATE STAFF ACCOUNT
