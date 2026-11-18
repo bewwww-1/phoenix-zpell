@@ -1244,6 +1244,7 @@ if (active === 'services') {
       </div>
     `).join('')}
 </div>
+    `).join('') || '<p class="empty">ยังไม่มีบริการ</p>'}
 
     <!-- ADD SERVICE MODAL -->
     <div class="modal-overlay" id="serviceModal" style="display:none">
