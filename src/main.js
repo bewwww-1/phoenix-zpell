@@ -860,6 +860,16 @@ if (active === 'staff') {
             <b>${esc(s.name_th || '')}</b>
             <p>${esc(s.role || '')}</p>
             <small>${esc(s.specialty || '')}</small>
+
+<div class="staff-card-actions">
+  <button
+    type="button"
+    class="secondary edit-staff"
+    data-id="${esc(s.id)}"
+  >
+    ✏️ แก้ไขข้อมูล
+  </button>
+</div>
           </div>
         </article>
       `).join('') || '<p class="empty">ยังไม่มีข้อมูลช่าง</p>'}
