@@ -469,6 +469,7 @@ const nav = [
   ['pos', 'receipt', 'ขายหน้าร้าน (POS)'],
   ['schedule', 'calendar-days', 'ตารางงาน'],
   ['staff', 'users', 'ทะเบียนช่าง'],
+  ['my-commission', 'chart-no-axes-combined', 'แดชบอร์ดค่าคอมมิชชัน'],
   ['staff-accounts', 'users', 'จัดการบัญชีพนักงาน'],
   ['services', 'scissors', 'ประเภทบริการ'],
   ['members', 'contact-round', 'ทะเบียนสมาชิก'],
@@ -502,6 +503,7 @@ const allowedPOSRoles = [
   'receptionist'
 ];
 
+
 const visibleNav = nav.filter(item => {
   if (
     item[0] === 'applications' ||
@@ -514,8 +516,13 @@ const visibleNav = nav.filter(item => {
     return allowedPOSRoles.includes(profile?.role);
   }
 
+  if (item[0] === 'my-commission') {
+    return profile?.role === 'stylist';
+  }
+
   return true;
 });
+
 
 if (
   ['applications', 'staff-accounts'].includes(active) &&
@@ -530,6 +537,14 @@ if (
 ) {
   active = 'overview';
 }
+  
+if (
+  active === 'my-commission' &&
+  profile?.role !== 'stylist'
+) {
+  active = 'overview';
+}
+
 
   $('#app').innerHTML = `
     <div class="app-shell">
@@ -633,6 +648,56 @@ function page() {
   const revenue = ap
     .filter(a => a.status === 'completed')
     .reduce((sum, a) => sum + Number(a.price || 0), 0);
+  
+  if (active === 'my-commission') {
+    return `
+      <div class="welcome-row">
+        <div>
+          <span class="eyebrow">STYLIST DASHBOARD</span>
+          <h1>ค่าคอมมิชชันของฉัน <span class="gold">✦</span></h1>
+          <p class="muted">สรุปผลงานและรายได้จากการให้บริการ</p>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="stat-card dark">
+          <span>CUSTOMERS TODAY</span>
+          <strong id="myTodayCustomers">-</strong>
+          <small>ลูกค้าที่รับบริการวันนี้</small>
+        </article>
+
+        <article class="stat-card">
+          <span>COMMISSION TODAY</span>
+          <strong id="myTodayCommission">-</strong>
+          <small>ค่าคอมมิชชันวันนี้</small>
+        </article>
+
+        <article class="stat-card">
+          <span>CUSTOMERS THIS MONTH</span>
+          <strong id="myMonthCustomers">-</strong>
+          <small>ลูกค้าที่รับบริการเดือนนี้</small>
+        </article>
+
+        <article class="stat-card">
+          <span>COMMISSION THIS MONTH</span>
+          <strong id="myMonthCommission">-</strong>
+          <small>ค่าคอมมิชชันเดือนนี้</small>
+        </article>
+      </div>
+
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">SERVICE HISTORY</span>
+          <h3>ประวัติค่าคอมมิชชัน</h3>
+        </div>
+      </div>
+
+      <div class="panel" id="myCommissionHistory">
+        <p class="muted">กำลังโหลดข้อมูล...</p>
+      </div>
+    `;
+  }
+
 
   if (active === 'overview') {
     return `
@@ -1421,6 +1486,90 @@ function wirePage() {
       render();
     };
   });
+  
+  // ==========================================
+  // MY COMMISSION DASHBOARD
+  // ==========================================
+
+  if (active === 'my-commission') {
+    const historyEl = $('#myCommissionHistory');
+
+    const loadMyCommission = async () => {
+      if (!supabase) return;
+
+      if (historyEl) {
+        historyEl.innerHTML = '<p class="muted">กำลังโหลดข้อมูล...</p>';
+      }
+
+      const { data, error } = await supabase.rpc(
+        'get_my_staff_commission'
+      );
+
+      if (error) {
+        console.error('Commission error:', error);
+        if (historyEl) {
+          historyEl.innerHTML =
+            '<p class="muted">ไม่สามารถโหลดข้อมูลได้: ' +
+            esc(error.message) + '</p>';
+        }
+        return;
+      }
+
+      const moneyText = value =>
+        Number(value || 0).toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }) + ' บาท';
+
+      $('#myTodayCustomers').textContent =
+        Number(data.today_customers || 0).toLocaleString('th-TH');
+
+      $('#myTodayCommission').textContent =
+        moneyText(data.today_commission);
+
+      $('#myMonthCustomers').textContent =
+        Number(data.month_customers || 0).toLocaleString('th-TH');
+
+      $('#myMonthCommission').textContent =
+        moneyText(data.month_commission);
+
+      const history = data.history || [];
+
+      if (!history.length) {
+        historyEl.innerHTML =
+          '<p class="muted">ยังไม่มีประวัติค่าคอมมิชชันในเดือนนี้</p>';
+        return;
+      }
+
+      historyEl.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>เลขที่ใบเสร็จ</th>
+                <th>บริการ</th>
+                <th>ค่าคอมมิชชัน</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.map(item => `
+                <tr>
+                  <td>${new Date(item.date).toLocaleDateString('th-TH')}</td>
+                  <td>${esc(item.receipt_no || '-')}</td>
+                  <td>${esc(item.service_name || '-')}</td>
+                  <td>${moneyText(item.commission_amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    loadMyCommission();
+  }
+
 
   // PROFILE IMAGE PREVIEW
   const avatarInput = $('#avatarFile');
