@@ -835,63 +835,61 @@ function page() {
     `;
   }
 
-  if (active === 'staff') {
-    return `
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">OUR PROFESSIONAL TEAM</span>
-          <h3>ทะเบียนช่าง</h3>
-          <p class="muted">ทีมผู้เชี่ยวชาญ Phoenix Zpell</p>
+
+if (active === 'staff') {
+  return `
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">OUR PROFESSIONAL TEAM</span>
+        <h3>ทะเบียนช่าง</h3>
+        <p class="muted">ทีมผู้เชี่ยวชาญ Phoenix Zpell</p>
+      </div>
+      <button class="primary" id="addStaff">
+        ＋ เพิ่มช่างใหม่
+      </button>
+    </div>
+
+    <div class="staff-grid">
+      ${cache.staff.map(s => `
+        <article class="staff-card">
+          <div class="initial">
+            ${esc((s.nickname || '').slice(0, 2))}
+          </div>
+          <div>
+            <h3>${esc(s.nickname || '')}</h3>
+            <b>${esc(s.name_th || '')}</b>
+            <p>${esc(s.role || '')}</p>
+            <small>${esc(s.specialty || '')}</small>
+          </div>
+        </article>
+      `).join('') || '<p class="empty">ยังไม่มีข้อมูลช่าง</p>'}
+    </div>
+
+    <!-- ADD STAFF MODAL -->
+    <div class="modal-overlay" id="staffModal" style="display:none">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">EMPLOYEE MANAGEMENT</span>
+            <h3>เพิ่มช่างใหม่</h3>
+            <p class="muted">กรอกข้อมูลพนักงานให้ครบถ้วน</p>
+          </div>
+          <button type="button" class="modal-close" id="closeStaffModal">
+            ✕
+          </button>
         </div>
-        <button class="primary" id="addStaff">＋ เพิ่มช่างใหม่</button>
-      </div>
 
-      <div class="staff-grid">
-        ${cache.staff.map(s => `
-          <article class="staff-card">
-            <div class="initial">${esc((s.nickname || '').slice(0, 2))}</div>
-            <div>
-              <h3>${esc(s.nickname || '')}</h3>
-              <b>${esc(s.name_th || '')}</b>
-              <p>${esc(s.role || '')}</p>
-              <small>${esc(s.specialty || '')}</small>
-            </div>
-          </article>
-        `).join('') || '<p class="empty">ยังไม่มีข้อมูลช่าง</p>'}
-      </div>
-    `;
-  }
+        <form id="staffForm" class="form-grid">
 
-  if (active === 'staff-accounts') {
-    if (profile?.role !== 'owner') {
-      return '<div class="panel">ไม่มีสิทธิ์เข้าถึงหน้านี้</div>';
-    }
-
-    return `
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">EMPLOYEE ACCOUNT MANAGEMENT</span>
-          <h3>จัดการบัญชีพนักงาน</h3>
-          <p class="muted">
-            สร้างบัญชีเข้าสู่ระบบให้พนักงาน Phoenix Zpell
-          </p>
-        </div>
-      </div>
-
-      <div class="panel form-panel">
-        <h3>＋ สร้างบัญชีพนักงานใหม่</h3>
-        <p class="muted">
-          กำหนดอีเมล รหัสผ่าน และสิทธิ์การใช้งานให้พนักงาน
-        </p>
-
-        <form id="createStaffAccountForm" class="form-grid">
-
-          <label>ชื่อ–นามสกุล
-            <input name="full_name"
-              placeholder="ชื่อและนามสกุลพนักงาน" required>
+          <label>ชื่อเล่น
+            <input name="nickname" placeholder="เช่น NU" required>
           </label>
 
-          <label>อีเมลสำหรับเข้าสู่ระบบ
+          <label>ชื่อ–นามสกุล
+            <input name="full_name" placeholder="ชื่อและนามสกุล" required>
+          </label>
+
+          <label>อีเมลเข้าสู่ระบบ
             <input name="email" type="email"
               placeholder="employee@example.com" required>
           </label>
@@ -901,27 +899,40 @@ function page() {
               minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร" required>
           </label>
 
-          <label>ตำแหน่งและสิทธิ์การใช้งาน
-            <select name="role" required>
-              <option value="">เลือกตำแหน่ง</option>
-              <option value="manager">ผู้จัดการ (Manager)</option>
-              <option value="receptionist">พนักงานต้อนรับ (Receptionist)</option>
-              <option value="stylist">ช่างทำผม (Stylist)</option>
-              <option value="assistant">ผู้ช่วยช่าง (Assistant)</option>
+          <label>ตำแหน่งงาน
+            <input name="job_title"
+              placeholder="เช่น Senior Hair Stylist">
+          </label>
+
+          <label>ความเชี่ยวชาญ
+            <input name="specialty"
+              placeholder="เช่น Hair Color, Hair Spa">
+          </label>
+
+          <label>สิทธิ์บัญชี
+            <select name="account_role" required>
+              <option value="">เลือกสิทธิ์บัญชี</option>
+              <option value="manager">Manager</option>
+              <option value="receptionist">Receptionist</option>
+              <option value="stylist">Stylist</option>
+              <option value="assistant">Assistant</option>
             </select>
           </label>
 
           <div class="form-actions">
-            <button class="primary" type="submit">
-              สร้างบัญชีพนักงาน
+            <button type="button" class="secondary" id="cancelStaffModal">
+              ยกเลิก
+            </button>
+            <button type="submit" class="primary" id="saveStaff">
+              บันทึกข้อมูลช่าง
             </button>
           </div>
 
         </form>
       </div>
-    `;
-  }
-
+    </div>
+  `;
+}
 
 // ==========================================
 // POS - หน้าขายหน้าร้าน
@@ -1903,31 +1914,60 @@ if (hasConflict) {
 
   // ADD STAFF
   
-const addStaff = $('#addStaff');
 
-if (addStaff) {
-  addStaff.onclick = async () => {
+// ==========================================
+// ADD STAFF MODAL
+// ==========================================
+
+const addStaff = $('#addStaff');
+const staffModal = $('#staffModal');
+const staffForm = $('#staffForm');
+
+const closeStaffModal = () => {
+  if (staffModal) {
+    staffModal.style.display = 'none';
+  }
+};
+
+if (addStaff && staffModal) {
+  addStaff.onclick = () => {
+    if (profile?.role !== 'owner') {
+      return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+    }
+
+    staffModal.style.display = 'flex';
+  };
+}
+
+$('#closeStaffModal')?.addEventListener('click', closeStaffModal);
+$('#cancelStaffModal')?.addEventListener('click', closeStaffModal);
+
+if (staffModal) {
+  staffModal.addEventListener('click', e => {
+    if (e.target === staffModal) {
+      closeStaffModal();
+    }
+  });
+}
+
+// SAVE STAFF
+if (staffForm) {
+  staffForm.onsubmit = async e => {
+    e.preventDefault();
+
     if (profile?.role !== 'owner') {
       return toast('เฉพาะเจ้าของร้านเท่านั้นที่สร้างพนักงานได้', true);
     }
 
-    const nickname = prompt('ชื่อเล่นพนักงาน');
-    if (!nickname?.trim()) return;
+    const f = new FormData(staffForm);
 
-    const name_th = prompt('ชื่อ–นามสกุล');
-    if (!name_th?.trim()) return;
-
-    const email = prompt('อีเมลสำหรับเข้าสู่ระบบ');
-    if (!email?.trim()) return;
-
-    const password = prompt('กำหนดรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)');
-    if (!password || password.length < 8) {
-      return toast('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', true);
-    }
-
-    const accountRole = prompt(
-      'กำหนดตำแหน่งบัญชี: manager, receptionist, stylist หรือ assistant'
-    );
+    const nickname = String(f.get('nickname') || '').trim();
+    const fullName = String(f.get('full_name') || '').trim();
+    const email = String(f.get('email') || '').trim();
+    const password = String(f.get('password') || '');
+    const jobTitle = String(f.get('job_title') || '').trim();
+    const specialty = String(f.get('specialty') || '').trim();
+    const accountRole = String(f.get('account_role') || '');
 
     const allowedRoles = [
       'manager',
@@ -1936,22 +1976,28 @@ if (addStaff) {
       'assistant'
     ];
 
-    if (!allowedRoles.includes(accountRole)) {
-      return toast('กรุณาระบุตำแหน่งให้ถูกต้อง', true);
+    if (!nickname || !fullName || !email || !password) {
+      return toast('กรุณากรอกข้อมูลให้ครบ', true);
     }
 
-    const specialty = prompt('ความเชี่ยวชาญ') || '';
-    const jobTitle = prompt('ตำแหน่งงาน เช่น Senior Hair Stylist') || '';
+    if (password.length < 8) {
+      return toast('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', true);
+    }
 
-    addStaff.disabled = true;
+    if (!allowedRoles.includes(accountRole)) {
+      return toast('กรุณาเลือกสิทธิ์บัญชีให้ถูกต้อง', true);
+    }
+
+    const saveButton = $('#saveStaff');
+    if (saveButton) saveButton.disabled = true;
 
     try {
       const { data, error } = await supabase.functions.invoke(
         'create-staff',
         {
           body: {
-            full_name: name_th.trim(),
-            email: email.trim(),
+            full_name: fullName,
+            email,
             password,
             role: accountRole
           }
@@ -1961,33 +2007,41 @@ if (addStaff) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const { error: staffError } = await supabase
-        .from('staff')
-        .insert({
-          nickname: nickname.trim(),
-          name_th: name_th.trim(),
-          role: jobTitle.trim(),
-          specialty: specialty.trim(),
-          active: true
-        });
+      const userId = data?.user?.id || data?.user_id || data?.id;
 
-      if (staffError) {
+      if (!userId) {
         throw new Error(
-          'สร้างบัญชีสำเร็จแล้ว แต่เพิ่มข้อมูลทะเบียนช่างไม่สำเร็จ: ' +
-          staffError.message
+          'สร้างบัญชีแล้ว แต่ไม่พบ User ID จาก create-staff กรุณาตรวจสอบผลลัพธ์ของฟังก์ชัน'
         );
       }
 
+      const { error: staffError } = await supabase
+        .from('staff')
+        .insert({
+          nickname,
+          name_th: fullName,
+          role: jobTitle,
+          specialty,
+          active: true,
+          user_id: userId
+        });
+
+      if (staffError) throw staffError;
+
       await refresh();
+
+      closeStaffModal();
+      staffForm.reset();
+
       render();
-      toast('สร้างบัญชีและเพิ่มพนักงานเรียบร้อยแล้ว');
+      toast('เพิ่มช่างและสร้างบัญชีเรียบร้อยแล้ว');
 
     } catch (err) {
-      console.error(err);
-      toast(err.message || 'สร้างบัญชีพนักงานไม่สำเร็จ', true);
+      console.error('Add staff error:', err);
+      toast(err.message || 'เพิ่มช่างไม่สำเร็จ', true);
 
     } finally {
-      addStaff.disabled = false;
+      if (saveButton) saveButton.disabled = false;
     }
   };
 }
