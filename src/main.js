@@ -870,6 +870,59 @@ if (active === 'staff') {
     ✏️ แก้ไขข้อมูล
   </button>
 </div>
+<!-- EDIT STAFF MODAL -->
+<div class="modal-overlay" id="editStaffModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div>
+        <span class="eyebrow">EMPLOYEE MANAGEMENT</span>
+        <h3>แก้ไขข้อมูลช่าง</h3>
+        <p class="muted">ปรับปรุงข้อมูลพนักงาน</p>
+      </div>
+
+      <button type="button" class="modal-close" id="closeEditStaffModal">
+        ✕
+      </button>
+    </div>
+
+    <form id="editStaffForm" class="form-grid">
+      <input type="hidden" name="id">
+
+      <label>ชื่อเล่น
+        <input name="nickname" required>
+      </label>
+
+      <label>ชื่อ–นามสกุล
+        <input name="name_th" required>
+      </label>
+
+      <label>ตำแหน่งงาน
+        <input name="role">
+      </label>
+
+      <label>ความเชี่ยวชาญ
+        <input name="specialty">
+      </label>
+
+      <label>สถานะการทำงาน
+        <select name="active">
+          <option value="true">ปฏิบัติงาน</option>
+          <option value="false">ไม่ปฏิบัติงาน</option>
+        </select>
+      </label>
+
+      <div class="form-actions">
+        <button type="button" class="secondary" id="cancelEditStaff">
+          ยกเลิก
+        </button>
+
+        <button type="submit" class="primary" id="saveEditStaff">
+          บันทึกการแก้ไข
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
           </div>
         </article>
       `).join('') || '<p class="empty">ยังไม่มีข้อมูลช่าง</p>'}
