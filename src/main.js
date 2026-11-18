@@ -2070,6 +2070,28 @@ if (addStaff) {
         if (!data?.success) {
           throw new Error('ไม่สามารถบันทึกยอดขายได้');
         }
+        
+        // ดึงรายการบริการและค่าคอมมิชชันที่บันทึกใน Supabase
+        const { data: savedItems, error: itemsError } =
+          await supabase
+            .from('sale_items')
+            .select(`
+              service_name,
+              staff_name,
+              line_total,
+              commission_rate,
+              commission_amount
+            `)
+            .eq('sale_id', data.sale_id);
+
+        if (itemsError) throw itemsError;
+
+        const commissionTotal = (savedItems || []).reduce(
+          (sum, item) =>
+            sum + Number(item.commission_amount || 0),
+          0
+        );
+
 
         // ==========================================
         // SHOW RECEIPT
@@ -2103,13 +2125,19 @@ if (addStaff) {
 
             <h3>รายการบริการ</h3>
 
-            ${items.map(item => `
+            
+            ${savedItems.map(item => `
               <div class="receipt-line">
                 <span>${esc(item.service_name)}</span>
-                <b>${money(item.unit_price)}</b>
+                <b>${money(item.line_total)}</b>
               </div>
-              <small>ช่าง: ${esc(item.staff_name || '-')}</small>
+              <small>
+                ช่าง: ${esc(item.staff_name || '-')}
+                | คอมมิชชัน ${Number(item.commission_rate)}%:
+                ${money(item.commission_amount)}
+              </small>
             `).join('')}
+
 
             <hr>
 
@@ -2126,6 +2154,10 @@ if (addStaff) {
             <div class="receipt-line receipt-total">
               <span>ยอดสุทธิ</span>
               <b>${money(data.total)}</b>
+            </div>
+            <div class="receipt-line">
+             <span>ค่าคอมมิชชันช่างรวม</span>
+              <b>${money(commissionTotal)}</b>
             </div>
 
             <div class="receipt-line">
