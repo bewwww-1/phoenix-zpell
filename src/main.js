@@ -1719,6 +1719,21 @@ function wirePage() {
 
       try {
         if (supabase) {
+const { data: hasConflict, error: conflictError } =
+  await supabase.rpc('check_appointment_conflict', {
+    p_staff_id: obj.staff_id,
+    p_appointment_date: obj.appointment_date,
+    p_appointment_time: obj.appointment_time,
+    p_duration_minutes: Number(service?.duration_minutes || 60)
+  });
+
+if (conflictError) throw conflictError;
+
+if (hasConflict) {
+  throw new Error(
+    'ช่างท่านนี้มีลูกค้าจองในช่วงเวลาดังกล่าวแล้ว กรุณาเลือกเวลาใหม่'
+  );
+}
           let member = await supabase
             .from('members')
             .select('id')
