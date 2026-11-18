@@ -2109,6 +2109,118 @@ if (staffForm) {
   };
 }
 
+// ==========================================
+// EDIT STAFF MODAL
+// ==========================================
+
+const editStaffModal = $('#editStaffModal');
+const editStaffForm = $('#editStaffForm');
+
+const closeEditStaffModal = () => {
+  if (editStaffModal) {
+    editStaffModal.style.display = 'none';
+  }
+};
+
+// OPEN EDIT MODAL
+document.querySelectorAll('.edit-staff').forEach(button => {
+  button.onclick = () => {
+    if (profile?.role !== 'owner') {
+      return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+    }
+
+    const staffId = button.dataset.id;
+
+    const staff = cache.staff.find(
+      s => String(s.id) === String(staffId)
+    );
+
+    if (!staff) {
+      return toast('ไม่พบข้อมูลช่าง', true);
+    }
+
+    editStaffForm.elements.id.value = staff.id;
+    editStaffForm.elements.nickname.value = staff.nickname || '';
+    editStaffForm.elements.name_th.value = staff.name_th || '';
+    editStaffForm.elements.role.value = staff.role || '';
+    editStaffForm.elements.specialty.value = staff.specialty || '';
+    editStaffForm.elements.active.value =
+      String(staff.active !== false);
+
+    editStaffModal.style.display = 'flex';
+  };
+};
+
+// CLOSE MODAL
+$('#closeEditStaffModal')?.addEventListener(
+  'click',
+  closeEditStaffModal
+);
+
+$('#cancelEditStaff')?.addEventListener(
+  'click',
+  closeEditStaffModal
+);
+
+editStaffModal?.addEventListener('click', e => {
+  if (e.target === editStaffModal) {
+    closeEditStaffModal();
+  }
+});
+
+// SAVE EDIT STAFF
+if (editStaffForm) {
+  editStaffForm.onsubmit = async e => {
+    e.preventDefault();
+
+    if (profile?.role !== 'owner') {
+      return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+    }
+
+    const f = new FormData(editStaffForm);
+
+    const staffId = f.get('id');
+
+    const updates = {
+      nickname: String(f.get('nickname') || '').trim(),
+      name_th: String(f.get('name_th') || '').trim(),
+      role: String(f.get('role') || '').trim(),
+      specialty: String(f.get('specialty') || '').trim(),
+      active: f.get('active') === 'true'
+    };
+
+    if (!updates.nickname || !updates.name_th) {
+      return toast('กรุณากรอกชื่อเล่นและชื่อ–นามสกุล', true);
+    }
+
+    const saveButton = $('#saveEditStaff');
+    if (saveButton) saveButton.disabled = true;
+
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update(updates)
+        .eq('id', staffId);
+
+      if (error) throw error;
+
+      await refresh();
+
+      closeEditStaffModal();
+      render();
+
+      toast('แก้ไขข้อมูลช่างเรียบร้อยแล้ว');
+
+    } catch (err) {
+      console.error('Edit staff error:', err);
+      toast(err.message || 'แก้ไขข้อมูลช่างไม่สำเร็จ', true);
+
+    } finally {
+      if (saveButton) saveButton.disabled = false;
+    }
+  };
+}
+
 
   // CREATE STAFF ACCOUNT
   const createStaffAccountForm = $('#createStaffAccountForm');
