@@ -169,3 +169,12 @@
   border-radius: 8px;
   cursor: pointer;
 }
+
+
+#editStaffModal {
+  display: none;
+}
+
+#editStaffModal .modal-card {
+  max-width: 650px;
+}
