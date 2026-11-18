@@ -1812,15 +1812,14 @@ function wirePage() {
         toast('ปฏิเสธใบสมัครเรียบร้อยแล้ว');
         render();
 
-      } catch (err) {
-        toast(err.message || 'ปฏิเสธใบสมัครไม่สำเร็จ', true);
-        button.disabled = false;
-      }
-    };
-  }
+         } catch (err) {
+      toast(err.message || 'ปฏิเสธใบสมัครไม่สำเร็จ', true);
+      button.disabled = false;
+    }
+  };
+});
 
-  const logout2 = $('#logout2');
-
+const logout2 = $('#logout2');
   if (logout2) {
     logout2.onclick = () => $('#logout').click();
   }
