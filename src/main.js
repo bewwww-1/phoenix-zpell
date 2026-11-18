@@ -495,8 +495,12 @@ async function boot(s) {
     profile = p;
 
     await refresh();
-    render();
 
+if (profile.role === 'owner') {
+  await refreshApplications();
+}
+
+render();
   } catch (err) {
     console.error('Boot error:', err);
 
