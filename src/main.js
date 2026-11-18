@@ -468,6 +468,7 @@ const nav = [
   ['booking', 'calendar-plus', 'จองคิว'],
   ['schedule', 'calendar-days', 'ตารางงาน'],
   ['staff', 'users', 'ทะเบียนช่าง'],
+  ['staff-accounts', 'users', 'จัดการบัญชีพนักงาน'],
   ['services', 'scissors', 'ประเภทบริการ'],
   ['members', 'contact-round', 'ทะเบียนสมาชิก'],
   ['applications', 'users', 'ใบสมัครพนักงาน'],
@@ -493,16 +494,19 @@ function icon(name) {
 }
 
 function render() {
-  const visibleNav = nav.filter(item =>
-    item[0] !== 'applications' || profile?.role === 'owner'
-  );
-
-  if (
-    active === 'applications' &&
-    profile?.role !== 'owner'
-  ) {
-    active = 'overview';
+  const visibleNav = nav.filter(item => {
+  if (item[0] === 'applications' || item[0] === 'staff-accounts') {
+    return profile?.role === 'owner';
   }
+
+  return true;
+});
+  if (
+  ['applications', 'staff-accounts'].includes(active) &&
+  profile?.role !== 'owner'
+) {
+  active = 'overview';
+}
 
   $('#app').innerHTML = `
     <div class="app-shell">
@@ -751,7 +755,7 @@ function page() {
           <h3>ทะเบียนช่าง</h3>
           <p class="muted">ทีมผู้เชี่ยวชาญ Phoenix Zpell</p>
         </div>
-        <button class="primary" id="addStaff">＋ สร้างบัญชีพนักงาน</button>
+        <button class="primary" id="addStaff">＋ เพิ่มช่างใหม่</button>
       </div>
 
       <div class="staff-grid">
@@ -766,6 +770,66 @@ function page() {
             </div>
           </article>
         `).join('') || '<p class="empty">ยังไม่มีข้อมูลช่าง</p>'}
+      </div>
+    `;
+  }
+
+  if (active === 'staff-accounts') {
+    if (profile?.role !== 'owner') {
+      return '<div class="panel">ไม่มีสิทธิ์เข้าถึงหน้านี้</div>';
+    }
+
+    return `
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">EMPLOYEE ACCOUNT MANAGEMENT</span>
+          <h3>จัดการบัญชีพนักงาน</h3>
+          <p class="muted">
+            สร้างบัญชีเข้าสู่ระบบให้พนักงาน Phoenix Zpell
+          </p>
+        </div>
+      </div>
+
+      <div class="panel form-panel">
+        <h3>＋ สร้างบัญชีพนักงานใหม่</h3>
+        <p class="muted">
+          กำหนดอีเมล รหัสผ่าน และสิทธิ์การใช้งานให้พนักงาน
+        </p>
+
+        <form id="createStaffAccountForm" class="form-grid">
+
+          <label>ชื่อ–นามสกุล
+            <input name="full_name"
+              placeholder="ชื่อและนามสกุลพนักงาน" required>
+          </label>
+
+          <label>อีเมลสำหรับเข้าสู่ระบบ
+            <input name="email" type="email"
+              placeholder="employee@example.com" required>
+          </label>
+
+          <label>รหัสผ่าน
+            <input name="password" type="password"
+              minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร" required>
+          </label>
+
+          <label>ตำแหน่งและสิทธิ์การใช้งาน
+            <select name="role" required>
+              <option value="">เลือกตำแหน่ง</option>
+              <option value="manager">ผู้จัดการ (Manager)</option>
+              <option value="receptionist">พนักงานต้อนรับ (Receptionist)</option>
+              <option value="stylist">ช่างทำผม (Stylist)</option>
+              <option value="assistant">ผู้ช่วยช่าง (Assistant)</option>
+            </select>
+          </label>
+
+          <div class="form-actions">
+            <button class="primary" type="submit">
+              สร้างบัญชีพนักงาน
+            </button>
+          </div>
+
+        </form>
       </div>
     `;
   }
@@ -1578,6 +1642,69 @@ if (addStaff) {
   };
 }
 
+
+  // CREATE STAFF ACCOUNT
+  const createStaffAccountForm = $('#createStaffAccountForm');
+
+  if (createStaffAccountForm) {
+    createStaffAccountForm.onsubmit = async (event) => {
+      event.preventDefault();
+
+      if (profile?.role !== 'owner') {
+        return toast('เฉพาะเจ้าของร้านเท่านั้น', true);
+      }
+
+      if (!supabase) {
+        return toast('ไม่สามารถเชื่อมต่อ Supabase ได้', true);
+      }
+
+      const formData = new FormData(createStaffAccountForm);
+
+      const full_name = String(formData.get('full_name') || '').trim();
+      const email = String(formData.get('email') || '').trim();
+      const password = String(formData.get('password') || '');
+      const role = String(formData.get('role') || '');
+
+      if (!full_name || !email || password.length < 8 || !role) {
+        return toast('กรุณากรอกข้อมูลให้ครบถ้วน', true);
+      }
+
+      const submitButton =
+        createStaffAccountForm.querySelector('button[type="submit"]');
+
+      submitButton.disabled = true;
+
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          'create-staff',
+          {
+            body: {
+              full_name,
+              email,
+              password,
+              role
+            }
+          }
+        );
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        createStaffAccountForm.reset();
+
+        toast('สร้างบัญชีพนักงานเรียบร้อยแล้ว');
+
+      } catch (err) {
+        console.error('Create staff account error:', err);
+        toast(err.message || 'สร้างบัญชีไม่สำเร็จ', true);
+
+      } finally {
+        submitButton.disabled = false;
+      }
+    };
+  }
+
+  // ADD SERVICE
 
      
 
