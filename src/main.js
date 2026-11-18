@@ -466,6 +466,7 @@ async function refreshApplications() {
 const nav = [
   ['overview', 'layout-dashboard', 'ภาพรวม'],
   ['booking', 'calendar-plus', 'จองคิว'],
+  ['pos', 'receipt', 'ขายหน้าร้าน (POS)'],
   ['schedule', 'calendar-days', 'ตารางงาน'],
   ['staff', 'users', 'ทะเบียนช่าง'],
   ['staff-accounts', 'users', 'จัดการบัญชีพนักงาน'],
@@ -480,6 +481,7 @@ const nav = [
 function icon(name) {
   const paths = {
     'layout-dashboard': '▦',
+    'receipt': '▤',
     'calendar-plus': '＋',
     'calendar-days': '▤',
     'users': '♧',
@@ -494,16 +496,37 @@ function icon(name) {
 }
 
 function render() {
-  const visibleNav = nav.filter(item => {
-  if (item[0] === 'applications' || item[0] === 'staff-accounts') {
+const allowedPOSRoles = [
+  'owner',
+  'manager',
+  'receptionist'
+];
+
+const visibleNav = nav.filter(item => {
+  if (
+    item[0] === 'applications' ||
+    item[0] === 'staff-accounts'
+  ) {
     return profile?.role === 'owner';
+  }
+
+  if (item[0] === 'pos') {
+    return allowedPOSRoles.includes(profile?.role);
   }
 
   return true;
 });
-  if (
+
+if (
   ['applications', 'staff-accounts'].includes(active) &&
   profile?.role !== 'owner'
+) {
+  active = 'overview';
+}
+
+if (
+  active === 'pos' &&
+  !allowedPOSRoles.includes(profile?.role)
 ) {
   active = 'overview';
 }
@@ -834,6 +857,169 @@ function page() {
     `;
   }
 
+
+// ==========================================
+// POS - หน้าขายหน้าร้าน
+// ==========================================
+if (active === 'pos') {
+  const allowedRoles = ['owner', 'manager', 'receptionist'];
+
+  if (!allowedRoles.includes(profile?.role)) {
+    return '<div class="panel">ไม่มีสิทธิ์เข้าถึงหน้านี้</div>';
+  }
+
+  return `
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">POINT OF SALE</span>
+        <h3>ขายหน้าร้าน</h3>
+        <p class="muted">
+          บันทึกบริการ คำนวณยอดชำระ และออกใบเสร็จให้ลูกค้า
+        </p>
+      </div>
+    </div>
+
+    <form id="posForm">
+
+      <div class="panel">
+        <h3>01. ข้อมูลลูกค้า</h3>
+
+        <div class="form-grid">
+          <label>
+            ชื่อลูกค้า
+            <input
+              name="customer_name"
+              placeholder="ชื่อลูกค้า หรือ Walk-in"
+              required
+            >
+          </label>
+
+          <label>
+            เบอร์โทรศัพท์
+            <input
+              name="customer_phone"
+              type="tel"
+              placeholder="08X-XXX-XXXX"
+            >
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>02. เลือกบริการ</h3>
+        <p class="muted">สามารถเลือกได้มากกว่าหนึ่งบริการ</p>
+
+        <div class="form-grid">
+          ${
+            cache.services.map(service => `
+              <label class="service-option">
+                <span>
+                  <input
+                    type="checkbox"
+                    name="service_ids"
+                    value="${esc(String(service.id))}"
+                    data-price="${Number(service.price_min) || 0}"
+                  >
+                  ${esc(service.name || 'บริการ')}
+                </span>
+
+                <b>
+                  ${Number(service.price_min || 0).toLocaleString('th-TH')}
+                  บาท
+                </b>
+              </label>
+            `).join('')
+          || '<p class="muted">ยังไม่มีรายการบริการ กรุณาเพิ่มบริการก่อน</p>'
+          }
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>03. ช่างผู้ให้บริการ</h3>
+
+        <label>
+          เลือกช่าง
+          <select name="staff_id">
+            <option value="">เลือกช่างผู้ให้บริการ</option>
+
+            ${cache.staff.map(staff => `
+              <option value="${esc(String(staff.id))}">
+                ${esc(staff.nickname || staff.name_th || 'ช่าง')}
+              </option>
+            `).join('')}
+          </select>
+        </label>
+      </div>
+
+      <div class="panel">
+        <h3>04. สรุปยอดชำระ</h3>
+
+        <div class="form-grid">
+          <label>
+            ส่วนลด (บาท)
+            <input
+              name="discount"
+              type="number"
+              min="0"
+              value="0"
+            >
+          </label>
+
+          <label>
+            วิธีชำระเงิน
+            <select name="payment_method" required>
+              <option value="cash">เงินสด</option>
+              <option value="transfer">โอนเงิน</option>
+              <option value="card">บัตรเครดิต / เดบิต</option>
+            </select>
+          </label>
+
+          <label>
+            จำนวนเงินที่รับมา (บาท)
+            <input
+              name="amount_received"
+              type="number"
+              min="0"
+              value="0"
+              required
+            >
+          </label>
+        </div>
+
+        <div class="pos-summary">
+          <div>
+            <span>ยอดรวมบริการ</span>
+            <b id="posSubtotal">0.00 บาท</b>
+          </div>
+
+          <div>
+            <span>ส่วนลด</span>
+            <b id="posDiscount">0.00 บาท</b>
+          </div>
+
+          <div class="pos-total">
+            <span>ยอดสุทธิ</span>
+            <b id="posTotal">0.00 บาท</b>
+          </div>
+
+          <div>
+            <span>เงินทอน</span>
+            <b id="posChange">0.00 บาท</b>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="primary">
+            รับชำระเงินและออกใบเสร็จ
+          </button>
+        </div>
+      </div>
+
+    </form>
+  `;
+}
+
+  
   if (active === 'services') {
     const categories = [
       ...new Map(
@@ -1704,7 +1890,77 @@ if (addStaff) {
     };
   }
 
-  // ADD SERVICE
+ 
+  // ==========================================
+  // POS - CALCULATE TOTAL
+  // ==========================================
+
+  const posForm = $('#posForm');
+
+  if (posForm) {
+    const subtotalEl = $('#posSubtotal');
+    const discountEl = $('#posDiscount');
+    const totalEl = $('#posTotal');
+    const changeEl = $('#posChange');
+
+    const discountInput = posForm.querySelector(
+      '[name="discount"]'
+    );
+
+    const receivedInput = posForm.querySelector(
+      '[name="amount_received"]'
+    );
+
+    const money = (value) =>
+      Number(value).toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + ' บาท';
+
+    const calculatePOS = () => {
+      const selectedServices = [
+        ...posForm.querySelectorAll(
+          'input[name="service_ids"]:checked'
+        )
+      ];
+
+      const subtotal = selectedServices.reduce(
+        (sum, item) => sum + (Number(item.dataset.price) || 0),
+        0
+      );
+
+      const discount = Math.min(
+        Math.max(Number(discountInput.value) || 0, 0),
+        subtotal
+      );
+
+      const total = subtotal - discount;
+
+      const received = Math.max(
+        Number(receivedInput.value) || 0,
+        0
+      );
+
+      const difference = received - total;
+
+      subtotalEl.textContent = money(subtotal);
+      discountEl.textContent = money(discount);
+      totalEl.textContent = money(total);
+
+      if (difference >= 0) {
+        changeEl.textContent = money(difference);
+      } else {
+        changeEl.textContent =
+          'ขาดอีก ' + money(Math.abs(difference));
+      }
+    };
+
+    posForm.addEventListener('change', calculatePOS);
+    posForm.addEventListener('input', calculatePOS);
+
+    calculatePOS();
+  }
+
 
      
 
